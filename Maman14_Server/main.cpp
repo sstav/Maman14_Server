@@ -265,8 +265,8 @@ void main() {
 		cout << backup_files->getFiles()[i];
 	}
 
-	ServerAction::save_file_from_backup("fgfg.txt", "isma", "Hellow Hellow Hello shalom\r\nBatia Save");
-	ServerAction::delete_file("fgfg.txt", "isma");
+	//ServerAction::save_file_from_backup("fgfg.txt", "isma", "Hellow Hellow Hello shalom\r\nBatia Save");
+	//ServerAction::delete_file("fgfg.txt", "isma");
 
 
 	cout << "Server is running..." << endl;

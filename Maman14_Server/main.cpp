@@ -142,6 +142,24 @@ public:
 		}
 		return true;
 	}
+
+	static char* get_file(string filename) {
+		ofstream file(filename, ios::out | ios::binary);
+
+		uint32_t buffer;
+
+		for (int k = 0; k < 100; k++) {
+			buffer = 0;
+			for (int i = 0; i < 32; i++) {
+				buffer <<= 1;
+				buffer |= (bool)(rand() % 2);
+			}
+			file.write((char*)&buffer, sizeof(buffer));
+		}
+		file.close();
+
+		return (char*)buffer;
+	}
 };
 
 

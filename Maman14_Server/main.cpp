@@ -2,8 +2,8 @@
 #include <Windows.h>
 #include <thread>
 #include <iostream>
+#include <sstream>
 #include <fstream>
-#include <filesystem>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -17,7 +17,7 @@
 
 #define getcwd _getcwd // stupid MSFT "deprecation" warning
 #define BACKUP_PATH ""
-#define RELATIVE_PATH "C:\\Users\\mstav\\source\\repos\\sstav\\Maman14_Server\\Debug\\"
+#define RELATIVE_PATH ""
 #define BACKUP_PATH2 "c:\\backupsvr\\"
 
 using namespace std;
@@ -38,7 +38,8 @@ class IPSetting {
 	string port;
 public:
 	IPSetting(string filename) {
-		ifstream  file(RELATIVE_PATH + filename);
+		string relat_path = filename;
+		ifstream  file(relat_path);
 		stringstream buffer;
 		buffer << file.rdbuf();
 		string _data = this->trim(buffer.str());
@@ -46,7 +47,11 @@ public:
 		int startPos = _data.find(":");
 		string set_ip = _data.substr(0, startPos);
 		string set_port = _data.substr(startPos+1, _data.length());
-
+		if (trim(set_ip) == "" || trim(set_port) == "") {
+			filename = "Something wrong with ip/port details at file: " + filename;
+			cout << "\nError: " << filename.c_str();
+			exit(-1);
+		}
 		this->ip = set_ip;
 		this->port = set_port;
 	}
@@ -80,10 +85,11 @@ public:
 	Backup(string filename) {
 		string line;
 		ifstream file;
-		file.open(RELATIVE_PATH + filename);
+		file.open(filename);
 
 		if (!file.is_open()) {
-			perror("Error open");
+			filename = "\nError open Backup file: " + filename;
+			perror(filename.c_str());
 			exit(EXIT_FAILURE);
 		}
 		while (getline(file, line)) {
@@ -106,14 +112,16 @@ class ServerAction {
 public:
 	static bool save_file_from_backup(string filename , string username, string file_data) {
 		try {
-			string str = (RELATIVE_PATH + username);
-			try {
-				_mkdir((RELATIVE_PATH + username).c_str());
-			}
-			catch (...) {}
-				
+			string str = (username);
 			
-			ofstream out(RELATIVE_PATH + username + "\\"  + filename);
+			int res = _mkdir((username).c_str());
+			if (res != -1) {
+				string err_msg = "\nError: Cant create Folder: " + username + ", Please Fix the permissions, and try again.";
+				puts(err_msg.c_str());
+				exit(-1);
+			}
+
+			ofstream out(username + "\\"  + filename);
 			out << file_data.c_str();
 			out.close();
 			return true;
@@ -125,11 +133,14 @@ public:
 	}
 
 	static bool delete_file(string filename, string username) {
-		if (remove((RELATIVE_PATH + username + "\\" + filename).c_str()) != 0)
-			perror("Error deleting file");
-		else
-			puts("File successfully deleted");
-		return 0;
+		if (remove((username + "\\" + filename).c_str()) != 0){
+			return false;
+			puts("\nFile Faild to be deleted");
+		}
+		else {
+			puts("\nFile successfully deleted");
+		}
+		return true;
 	}
 };
 
@@ -171,7 +182,7 @@ string getModuleFilePath(char* argv) {
 
 	std::cout << "path: " << cur_dir.substr(0, pos) << std::endl;
 	std::cout << "file: " << cur_dir.substr(pos + 1) << std::endl;
-	return 0;
+	return "";
 }
 
 bool IsDirectory(const char* path)
@@ -207,7 +218,6 @@ void HandleRequest(SOCKET client_incomming) {
 }
 
 void HandleClient(SOCKET s) {
-
 	SOCKET client_incomming = accept(s, NULL, NULL);
 	std::thread ct(HandleRequest, client_incomming);
 	ct.detach();
@@ -237,7 +247,7 @@ void main() {
 		cout << backup_files->getFiles()[i];
 	}
 
-	ServerAction::save_file_from_backup("sss.txt", "isma", "Hellow Hellow Hello shalom\r\nBatia Save");
+	ServerAction::save_file_from_backup("fgfg.txt", "isma", "Hellow Hellow Hello shalom\r\nBatia Save");
 	ServerAction::delete_file("fgfg.txt", "isma");
 
 

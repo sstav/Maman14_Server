@@ -218,17 +218,17 @@ bool IsDirectory(const char* path)
 
 void HandleRequest(SOCKET client_incomming) {
 	cout << "Detected: Incomming Request..." << endl;
-	char clientmsg[1024] = { 0 };
-	recv(client_incomming, clientmsg, 1024, 0);
-	string data_name = clientmsg;
-	unsigned int data_start = data_name.find("GET /");
-	unsigned int data_end = data_name.find("HTTP");
-	string name = data_name.substr(data_start+5, data_end-5);
-	puts(clientmsg);
-	puts(name.c_str());
+	PACKET* clientmsg = new PACKET();
+	recv(client_incomming, (char*)&clientmsg->user_id, 20, 0);
+
+	puts("Client MSG: ");
+	puts("\nuser_id: " + 123);
+	puts("\nversion: " + clientmsg->version);
+	puts("\nOP: " + clientmsg->op);
+
 	string data_back = "HTTP/1.1 200 OK\n\n";
-	name = string_replace("%20", " ", name);
-	data_back += "<html><body><center><h1>Hello Stav</h1><br><br>"+ name +"</body></html>";
+
+	data_back += "<html><body><center><h1>Hello Stav</h1><br><br>UserID:" + clientmsg->user_id + clientmsg->version;
 	send(client_incomming, data_back.c_str(), data_back.length(), 0);
 
 	closesocket(client_incomming);

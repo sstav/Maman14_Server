@@ -3,6 +3,7 @@
 #include <thread>
 #include <iostream>
 #include <string>
+#include <regex>
 
 #pragma comment(lib,"ws2_32.lib")
 #pragma pack(1)
@@ -22,6 +23,25 @@ public:
 	char* payload;
 };
 
+string string_replace(string find, string replace , string str , int limit = 0) {
+	int start_pos,i=0;
+	while (start_pos = str.find(find)) {
+		if (start_pos < 0) {
+			break;
+		}
+		str.replace(start_pos, find.length(), replace);
+		if (limit != 0) {
+			i++;
+			if (i == limit) {
+				break;
+			}
+		}
+	}
+
+	return str;
+
+}
+
 void HandleRequest(SOCKET client_incomming) {
 	cout << "Detected: Incomming Request..." << endl;
 	char clientmsg[1024] = { 0 };
@@ -33,7 +53,7 @@ void HandleRequest(SOCKET client_incomming) {
 	puts(clientmsg);
 	puts(name.c_str());
 	string data_back = "HTTP/1.1 200 OK\n\n";
-
+	name = string_replace("%20", " ", name);
 	data_back += "<html><body><center><h1>Hello Stav</h1><br><br>"+ name +"</body></html>";
 	send(client_incomming, data_back.c_str(), data_back.length(), 0);
 
@@ -51,8 +71,6 @@ void HandleClient(SOCKET s) {
 
 
 void main() {
-	
-
 	PACKET* p = new PACKET();
 	p->user_id = 10;
 	p->version = '1';

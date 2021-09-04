@@ -19,17 +19,18 @@
 #define BACKUP_PATH ""
 #define RELATIVE_PATH ""
 #define BACKUP_PATH2 "c:\\backupsvr\\"
+#define BLOCK_DATA 20
 
 using namespace std;
 
 class PACKET {
 public:
 	unsigned int user_id;
-	char version;
-	char op;
+	unsigned char version;
+	unsigned char op;
 	unsigned short name_len;
-	char* filename;
 	unsigned int size;
+	char* filename;
 	char* payload;
 };
 
@@ -95,6 +96,7 @@ public:
 		while (getline(file, line)) {
 			backup_files.push_back(line);
 		}
+		file.close();
 	}
 
 	int length() {
@@ -216,31 +218,6 @@ bool IsDirectory(const char* path)
 }
 
 
-void HandleRequest(SOCKET client_incomming) {
-	cout << "Detected: Incomming Request..." << endl;
-	PACKET* clientmsg = new PACKET();
-	recv(client_incomming, (char*)&clientmsg->user_id, 20, 0);
-
-	puts("Client MSG: ");
-	puts("\nuser_id: " + 123);
-	puts("\nversion: " + clientmsg->version);
-	puts("\nOP: " + clientmsg->op);
-
-	string data_back = "HTTP/1.1 200 OK\n\n";
-
-	data_back += "<html><body><center><h1>Hello Stav</h1><br><br>UserID:" + clientmsg->user_id + clientmsg->version;
-	send(client_incomming, data_back.c_str(), data_back.length(), 0);
-
-	closesocket(client_incomming);
-	cout << "waiting for requests..." << endl;
-}
-
-void HandleClient(SOCKET s) {
-	SOCKET client_incomming = accept(s, NULL, NULL);
-	std::thread ct(HandleRequest, client_incomming);
-	ct.detach();
-	
-}
 
 
 IPSetting* init_IPSetting() {
@@ -252,6 +229,86 @@ IPSetting* init_IPSetting() {
 Backup* init_Backup() {
 	Backup* backup_files = new Backup("backup.info");
 	return backup_files;
+}
+
+
+
+// בקשה לרשימת הקבצים בשרת
+string RequestBackUpList(string str) {
+	str = "";
+	Backup* backup_files = init_Backup();
+	for (int i = 0; i < backup_files->length(); i++) {
+		str += backup_files->getFiles()[i] + "\n";
+	}
+	return str;
+}
+
+// בקשה לרשימת הקבצים בשרת
+string RequestBackUpList2(string str) {
+	str = "";
+	Backup* backup_files = init_Backup();
+	for (int i = 0; i < backup_files->length(); i++) {
+		str += backup_files->getFiles()[i] + "\n";
+	}
+	return str;
+}
+
+string HandleResponse(unsigned int op, PACKET* clientmsg, char* buffer) {
+	string tempStr = "";
+	char* file_name;
+	FILE* file_data;
+	if (op == 202) {
+		return RequestBackUpList(tempStr);
+	}
+	else if (op == 100) {
+		file_name = new char[clientmsg->name_len];
+		file_data = new FILE[clientmsg->size];
+		memcpy(file_data, buffer, clientmsg->name_len);
+		memcpy(clientmsg, buffer + clientmsg->name_len, clientmsg->size);
+		return "File Name Is: " + (string)file_name;
+		//char* filename = new char[];
+		//char* file_req = new char[];
+		//memcpy(filename, buf, clientmsg->name_len);
+		//memcpy(filename, buf, clientmsg->size);
+	}
+}
+
+void HandleRequest(SOCKET client_incomming) {
+	cout << "Detected: Incomming Request..." << endl;
+	PACKET* clientmsg = new PACKET();
+	char* buf = new char[8096];
+
+	//Get Packet Data
+	recv(client_incomming, (char*)buf, BLOCK_DATA, 0);
+	//Read Client Structer Details
+	memcpy(clientmsg, buf, BLOCK_DATA);
+	
+
+	try {
+		cout << "Client MSG:";
+		cout << "\nuser_id: " << clientmsg->user_id;
+		cout << "\nversion: " << (unsigned int)clientmsg->version;
+		cout << "\nOP: " << (unsigned int)clientmsg->op;
+		cout << "\n\n";
+	}
+	catch (int err) {}
+
+
+	string data_back = "HTTP/1.1 200 OK\n\n";
+
+	//data_back += "<html><body><center><h1>Hello Stav</h1><br><br>UserID:";
+	data_back = HandleResponse((int)clientmsg->op, clientmsg , buf + BLOCK_DATA);
+	send(client_incomming, data_back.c_str(), data_back.length(), 0);
+
+	closesocket(client_incomming);
+	cout << "waiting for requests..." << endl;
+}
+
+void HandleClient(SOCKET s) {
+	SOCKET client_incomming = accept(s, NULL, NULL);
+	std::thread ct(HandleRequest, client_incomming);
+	ct.detach();
+
 }
 
 int create_key() {
@@ -267,6 +324,16 @@ void main() {
 
 	//ServerAction::save_file_from_backup("fgfg.txt", "isma", "Hellow Hellow Hello shalom\r\nBatia Save");
 	//ServerAction::delete_file("fgfg.txt", "isma");
+
+	PACKET* pac = new PACKET();
+	char buf[] = { 1,0,0,0,5,6,7,8,9,0xA,0xB,0xC,0xD,0xC,0xD,0xF,0xF,0xF,0xF,0xF };
+	cout << "\nbuff" <<  sizeof(buf);
+	cout << "\npac" << sizeof(*pac);
+	memcpy(pac, buf, sizeof(buf));
+	cout << "\npac->user_id:" << pac->user_id;
+	cout << "\npac->version:" << pac->version;
+	cout << "\npac->op:" << pac->op;
+	cout << "\npac->name_len:" << pac->name_len;
 
 
 	cout << "Server is running..." << endl;

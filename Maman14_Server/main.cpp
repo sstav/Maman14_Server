@@ -31,7 +31,7 @@ public:
 	unsigned short name_len;
 	unsigned int size;
 	char* filename;
-	char* payload;
+	FILE* payload;
 };
 
 class IPSetting {
@@ -261,11 +261,12 @@ string HandleResponse(unsigned int op, PACKET* clientmsg, char* buffer) {
 		return RequestBackUpList(tempStr);
 	}
 	else if (op == 100) {
-		file_name = new char[clientmsg->name_len];
-		file_data = new FILE[clientmsg->size];
-		memcpy(file_data, buffer, clientmsg->name_len);
-		memcpy(clientmsg, buffer + clientmsg->name_len, clientmsg->size);
-		return "File Name Is: " + (string)file_name;
+		cout << "#########" << clientmsg->name_len << "\n\n" << "#########" << clientmsg->user_id;
+		clientmsg->filename = new char[clientmsg->name_len];
+		clientmsg->payload = new FILE[clientmsg->size];
+		memcpy(clientmsg->filename, buffer, clientmsg->name_len);
+		memcpy(clientmsg->payload, buffer + clientmsg->name_len, clientmsg->size);
+		return "File Name Is: " + (string)clientmsg->filename;
 		//char* filename = new char[];
 		//char* file_req = new char[];
 		//memcpy(filename, buf, clientmsg->name_len);
@@ -289,6 +290,8 @@ void HandleRequest(SOCKET client_incomming) {
 		cout << "\nuser_id: " << clientmsg->user_id;
 		cout << "\nversion: " << (unsigned int)clientmsg->version;
 		cout << "\nOP: " << (unsigned int)clientmsg->op;
+		cout << "\nNAME LEN: " << (unsigned int)clientmsg->name_len;
+		cout << "\nPayload Size: " << (unsigned int)clientmsg->size;
 		cout << "\n\n";
 	}
 	catch (int err) {}
@@ -325,15 +328,15 @@ void main() {
 	//ServerAction::save_file_from_backup("fgfg.txt", "isma", "Hellow Hellow Hello shalom\r\nBatia Save");
 	//ServerAction::delete_file("fgfg.txt", "isma");
 
-	PACKET* pac = new PACKET();
-	char buf[] = { 1,0,0,0,5,6,7,8,9,0xA,0xB,0xC,0xD,0xC,0xD,0xF,0xF,0xF,0xF,0xF };
-	cout << "\nbuff" <<  sizeof(buf);
-	cout << "\npac" << sizeof(*pac);
-	memcpy(pac, buf, sizeof(buf));
-	cout << "\npac->user_id:" << pac->user_id;
-	cout << "\npac->version:" << pac->version;
-	cout << "\npac->op:" << pac->op;
-	cout << "\npac->name_len:" << pac->name_len;
+	//PACKET* pac = new PACKET();
+	//char buf[] = { 1,0,0,0,5,6,7,8,9,0xA,0xB,0xC,0xD,0xC,0xD,0xF,0xF,0xF,0xF,0xF };
+	//cout << "\nbuff" <<  sizeof(buf);
+	//cout << "\npac" << sizeof(*pac);
+	//memcpy(pac, buf, sizeof(buf));
+	//cout << "\npac->user_id:" << pac->user_id;
+	//cout << "\npac->version:" << pac->version;
+	//cout << "\npac->op:" << pac->op;
+	//cout << "\npac->name_len:" << pac->name_len;
 
 
 	cout << "Server is running..." << endl;

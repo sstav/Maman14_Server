@@ -1,5 +1,7 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <WinSock2.h>
 #include <Windows.h>
+#include <direct.h>
 #include <thread>
 #include <iostream>
 #include <sstream>
@@ -15,10 +17,10 @@
 #pragma comment(lib,"ws2_32.lib")
 #pragma pack(1)
 
+
 #define getcwd _getcwd // stupid MSFT "deprecation" warning
-#define BACKUP_PATH ""
 #define RELATIVE_PATH ""
-#define BACKUP_PATH2 "c:\\backupsvr\\"
+#define BACKUP_PATH "c:\\backupsvr\\"
 #define BLOCK_DATA 20
 
 using namespace std;
@@ -31,7 +33,7 @@ public:
 	unsigned short name_len;
 	unsigned int size;
 	char* filename;
-	FILE* payload;
+	char* payload;
 };
 
 class IPSetting {
@@ -253,9 +255,9 @@ string RequestBackUpList2(string str) {
 	return str;
 }
 
+
 string HandleResponse(unsigned int op, PACKET* clientmsg, char* buffer) {
 	string tempStr = "";
-	char* file_name;
 	FILE* file_data;
 	if (op == 202) {
 		return RequestBackUpList(tempStr);
@@ -263,10 +265,29 @@ string HandleResponse(unsigned int op, PACKET* clientmsg, char* buffer) {
 	else if (op == 100) {
 		cout << "#########" << clientmsg->name_len << "\n\n" << "#########" << clientmsg->user_id;
 		clientmsg->filename = new char[clientmsg->name_len];
-		clientmsg->payload = new FILE[clientmsg->size];
+		clientmsg->payload = new char[clientmsg->size];
 		memcpy(clientmsg->filename, buffer, clientmsg->name_len);
 		memcpy(clientmsg->payload, buffer + clientmsg->name_len, clientmsg->size);
-		return "File Name Is: " + (string)clientmsg->filename;
+		clientmsg->filename[clientmsg->name_len] = '\0';
+		stringstream sream_userid;
+		sream_userid << clientmsg->user_id;
+		string file_path = BACKUP_PATH;
+		file_path  += sream_userid.str() + "\\";
+		try {
+			_mkdir(file_path.c_str());
+		}catch(int err){}
+		string full_file = file_path;
+			file_data = new FILE[clientmsg->size];
+			full_file += "\\";
+			full_file += clientmsg->filename;
+			file_data = fopen(full_file.c_str(), "wb");
+			fwrite(clientmsg->payload, 1, clientmsg->size, file_data);
+			fclose(file_data);
+
+		string ret ="";
+		ret = "File Name: " + (string)clientmsg->filename + "\nSaved On: " + file_path;
+		
+		return ret;
 		//char* filename = new char[];
 		//char* file_req = new char[];
 		//memcpy(filename, buf, clientmsg->name_len);
@@ -277,10 +298,10 @@ string HandleResponse(unsigned int op, PACKET* clientmsg, char* buffer) {
 void HandleRequest(SOCKET client_incomming) {
 	cout << "Detected: Incomming Request..." << endl;
 	PACKET* clientmsg = new PACKET();
-	char* buf = new char[8096];
+	char* buf = new char[100000000];
 
 	//Get Packet Data
-	recv(client_incomming, (char*)buf, BLOCK_DATA, 0);
+	recv(client_incomming, (char*)buf, 100000000, 0);
 	//Read Client Structer Details
 	memcpy(clientmsg, buf, BLOCK_DATA);
 	
@@ -300,7 +321,7 @@ void HandleRequest(SOCKET client_incomming) {
 	string data_back = "HTTP/1.1 200 OK\n\n";
 
 	//data_back += "<html><body><center><h1>Hello Stav</h1><br><br>UserID:";
-	data_back = HandleResponse((int)clientmsg->op, clientmsg , buf + BLOCK_DATA);
+	data_back = HandleResponse((int)clientmsg->op, clientmsg , buf + 12);
 	send(client_incomming, data_back.c_str(), data_back.length(), 0);
 
 	closesocket(client_incomming);
